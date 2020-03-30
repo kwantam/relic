@@ -219,6 +219,20 @@ void ep2_map_impl(ep2_t p, const uint8_t *msg, int len, const uint8_t *dst, int 
 		/* hash to a pseudorandom string using md_xmd */
 		md_xmd(pseudo_random_bytes, 4 * len_per_elm, msg, len, dst, dst_len);
 
+		fprintf(stderr, "msg = bytes([");
+		for (unsigned i = 0; i < len; ++i) {
+			fprintf(stderr, "0x%2.2x,", msg[i]);
+		}
+		fprintf(stderr, "])\ndst = bytes([");
+		for (unsigned i = 0; i < dst_len; ++i) {
+			fprintf(stderr, "0x%2.2x,", dst[i]);
+		}
+		fprintf(stderr, "])\npseudo_random_bytes = bytes([");
+		for (unsigned i = 0; i < 4 * len_per_elm; ++i) {
+			fprintf(stderr, "0x%2.2x,", pseudo_random_bytes[i]);
+		}
+		fprintf(stderr, "])\n");
+
 #define EP2_MAP_CONVERT_BYTES(IDX)                                                       \
 	do {                                                                                 \
 		bn_read_bin(k, pseudo_random_bytes + 2 * IDX * len_per_elm, len_per_elm);        \
@@ -240,18 +254,60 @@ void ep2_map_impl(ep2_t p, const uint8_t *msg, int len, const uint8_t *dst, int 
 		dv_copy_cond(PT->y[1], t[1], RLC_FP_DIGS, neg);                                  \
 	} while (0)
 
+		char print_buf[1024];
+
 		/* first map invocation */
 		EP2_MAP_CONVERT_BYTES(0);
+		fp_prime_back(k, t[0]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "t00 = 0x%s\n", print_buf);
+		fp_prime_back(k, t[1]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "t01 = 0x%s\n", print_buf);
+
 		EP2_MAP_APPLY_MAP(p);
 		TMPL_MAP_CALL_ISOMAP(2,p);
+		ep2_norm(p, p);
+		fp_prime_back(k, p->x[0]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Px0 = 0x%s\n", print_buf);
+		fp_prime_back(k, p->x[1]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Px1 = 0x%s\n", print_buf);
+		fp_prime_back(k, p->y[0]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Py0 = 0x%s\n", print_buf);
+		fp_prime_back(k, p->y[1]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Py1 = 0x%s\n", print_buf);
 
 		/* second map invocation */
 		EP2_MAP_CONVERT_BYTES(1);
+		fp_prime_back(k, t[0]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "t10 = 0x%s\n", print_buf);
+		fp_prime_back(k, t[1]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "t11 = 0x%s\n", print_buf);
+
 		EP2_MAP_APPLY_MAP(q);
 		TMPL_MAP_CALL_ISOMAP(2,q);
 
 		/* XXX(rsw) could add p and q and then apply isomap,
 		 * but need ep_add to support addition on isogeny curves */
+		ep2_norm(q, q);
+		fp_prime_back(k, q->x[0]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Qx0 = 0x%s\n", print_buf);
+		fp_prime_back(k, q->x[1]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Qx1 = 0x%s\n", print_buf);
+		fp_prime_back(k, q->y[0]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Qy0 = 0x%s\n", print_buf);
+		fp_prime_back(k, q->y[1]);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Qy1 = 0x%s\n", print_buf);
 
 #undef EP2_MAP_CONVERT_BYTES
 #undef EP2_MAP_APPLY_MAP
@@ -278,6 +334,9 @@ void ep2_map_impl(ep2_t p, const uint8_t *msg, int len, const uint8_t *dst, int 
 				}
 				break;
 		}
+		fprintf(stderr, "check_h2f(msg, dst, pseudo_random_bytes, t00, t01, t10, t11)\n");
+		fprintf(stderr, "check_m2c(t00, t01, Px0, Px1, Py0, Py1)\n");
+		fprintf(stderr, "check_m2c(t10, t11, Qx0, Qx1, Qy0, Qy1)\n");
 	}
 	RLC_CATCH_ANY {
 		RLC_THROW(ERR_CAUGHT);
