@@ -1196,6 +1196,7 @@ int test(void) {
 
 	util_banner("Utilities:", 1);
 
+	/*
 	if (memory() != RLC_OK) {
 		core_clean();
 		return 1;
@@ -1230,6 +1231,7 @@ int test(void) {
 	if (simultaneous() != RLC_OK) {
 		return RLC_ERR;
 	}
+	*/
 
 	if (hashing() != RLC_OK) {
 		return RLC_ERR;
