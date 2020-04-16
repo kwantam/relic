@@ -204,8 +204,24 @@ void ed_map_dst(ed_t p, const uint8_t *msg, int len, const uint8_t *dst, int dst
 		fp_new(t);
 		ed_new(q);
 
+		fprintf(stderr, "msg = bytes([");
+		for (unsigned i = 0; i < len; ++i) {
+			fprintf(stderr, "0x%2.2x,", msg[i]);
+		}
+		fprintf(stderr, "])\ndst = bytes([");
+		for (unsigned i = 0; i < dst_len; ++i) {
+			fprintf(stderr, "0x%2.2x,", dst[i]);
+		}
+		fprintf(stderr, "])\n");
+
 		/* pseudorandom string */
 		md_xmd(pseudo_random_bytes, 2 * len_per_elm, msg, len, dst, dst_len);
+
+		fprintf(stderr, "pseudo_random_bytes = bytes([");
+		for (unsigned i = 0; i < 2 * len_per_elm; ++i) {
+			fprintf(stderr, "0x%2.2x,", pseudo_random_bytes[i]);
+		}
+		fprintf(stderr, "])\n");
 
 #define ED_MAP_CONVERT_BYTES(IDX)                                                        \
 	do {                                                                                 \
@@ -213,13 +229,37 @@ void ed_map_dst(ed_t p, const uint8_t *msg, int len, const uint8_t *dst, int dst
 		fp_prime_conv(t, k);                                                             \
 	} while (0)
 
+		char print_buf[1024];
+
 		/* first map invocation */
 		ED_MAP_CONVERT_BYTES(0);
+		fp_prime_back(k, t);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "t0 = 0x%s\n", print_buf);
+
 		ed_map_ell2_5mod8(p, t);
+		ed_norm(p, p);
+		fp_prime_back(k, p->x);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Px = 0x%s\n", print_buf);
+		fp_prime_back(k, p->y);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Py = 0x%s\n", print_buf);
 
 		/* second map invocation */
 		ED_MAP_CONVERT_BYTES(1);
+		fp_prime_back(k, t);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "t1 = 0x%s\n", print_buf);
+
 		ed_map_ell2_5mod8(q, t);
+		ed_norm(q, q);
+		fp_prime_back(k, q->x);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Qx = 0x%s\n", print_buf);
+		fp_prime_back(k, q->y);
+		bn_write_str(print_buf, 1024, k, 16);
+		fprintf(stderr, "Qy = 0x%s\n", print_buf);
 
 #undef ED_MAP_CONVERT_BYTES
 
@@ -242,6 +282,9 @@ void ed_map_dst(ed_t p, const uint8_t *msg, int len, const uint8_t *dst, int dst
 		fp_mul(p->t, p->x, p->y);
 #endif
 		p->coord = BASIC;
+		fprintf(stderr, "check_h2f(msg, dst, pseudo_random_bytes, t0, t1)\n");
+		fprintf(stderr, "check_m2c(t0, Px, Py)\n");
+		fprintf(stderr, "check_m2c(t1, Qx, Qy)\n");
 	}
 	RLC_CATCH_ANY {
 		RLC_THROW(ERR_CAUGHT);
